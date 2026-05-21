@@ -17,6 +17,8 @@ This is the distinction between `signature_is_valid` and `signature_is_trusted` 
 | **Local key** | ✓ | ✗ (key is unknown to others) |
 | **Platform key** | ✓ | ✓ (key is endorsed and discoverable) |
 
+> **Current Python SDK limitation:** endorsement-chain verification is not implemented yet. Today `verify()` checks cryptographic validity and always returns `signature_is_trusted: False`. The endorsed-key and working-key sections below describe the intended trust model, not a fully available local API.
+
 **For anything others will verify, generate your keys in [MSD Explorer](https://network.msd-protocol.org/dashboard).** Keys generated there are endorsed by the platform and linked to your identity — so verifiers can see who signed the data and decide whether to trust it.
 
 `generate_key_pair(unendorsed=True)` is for testing and local development only.
@@ -341,7 +343,7 @@ sequenceDiagram
 Anyone can verify signatures by tracing the endorsement chain:
 
 ```python
-result = msd.verify(signed_data, return_details=True)
+result = msd.verify(signed_data)
 
 # Returns (using UIDs for compact display):
 {
@@ -355,6 +357,8 @@ result = msd.verify(signed_data, return_details=True)
 ```
 
 The chain shows: **Root → endorses → Identity Key → endorses → Working Key**
+
+This endorsement-chain result is not returned by the current Python SDK yet; current `signing_key_trust_chain` values are empty.
 
 ---
 

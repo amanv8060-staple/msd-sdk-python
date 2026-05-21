@@ -21,7 +21,8 @@ for test_file in test_files:
     path = os.path.join(test_dir, test_file)
     result = subprocess.run([sys.executable, path], capture_output=True, text=True)
     print(result.stdout, end='')
-    if result.returncode not in (0, 139):  # 139 = segfault during cleanup, tests still passed
+    reported_failure = "❌" in result.stdout or "❌" in result.stderr
+    if result.returncode not in (0, 139) or reported_failure:  # 139 = segfault during cleanup, tests still passed
         print(result.stderr, end='')
         total_failures += 1
 

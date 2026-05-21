@@ -40,6 +40,8 @@ For production use, **generate your keys in [MSD Explorer](https://network.msd-p
 
 This is the difference between `signature_is_valid` and `signature_is_trusted` in the verify result. Cryptographic validity is table stakes. Trust requires identity.
 
+> **Current SDK limitation:** trust-chain verification is not implemented in this Python SDK yet. `verify()` can tell you whether a signature is cryptographically valid, but today it always returns `signature_is_trusted: False`. Do not treat `signature_is_valid: True` as proof of identity or authorization.
+
 > For testing and development, `msd.generate_key_pair(unendorsed=True)` creates a local key that works for signing but can't be trusted by anyone outside your machine.
 
 #### Loading a Key
@@ -182,6 +184,12 @@ msd.verify(signed)
 
 `verify()` works on all signed data types: `ET.SignedData`, dicts with `__msd` key, and typed file dicts with embedded signatures.
 
+For security decisions, check the exact field you need:
+
+- Use `signature_is_valid` only for tamper detection.
+- Use `is_verified_and_trusted` for identity-sensitive decisions once trust-chain verification is implemented.
+- Do not accept data as "from Alice" just because `signature_is_valid` is `True`.
+
 ```python
 # Verify signed data directly
 result = msd.verify(signed)
@@ -217,7 +225,7 @@ clean_image = msd.strip_metadata_and_signature(signed_png)
 
 ### 5. Trust Network
 
-When `verify()` returns `signature_is_trusted: False`, it means the signer isn't in your trust network. Build one:
+The local trust network stores entities you trust:
 
 ```python
 msd.add_to_trust_network({'__type': 'ET.GoogleAccount', 'email': 'alice@gmail.com'})
@@ -225,6 +233,8 @@ msd.add_to_trust_network({'__type': 'ET.Organization', 'url': 'https://acme.com'
 
 msd.is_trusted({'__type': 'ET.GoogleAccount', 'email': 'alice@gmail.com'})  # True
 ```
+
+This trust store is available for applications to use, but it is not yet wired into `verify()`. In the current SDK, adding an entity to the trust network does not make signed data return `signature_is_trusted: True`.
 
 The trust network is stored at `~/.config/msd/trust-network.json` (Linux/macOS) or `%APPDATA%\msd\trust-network.json` (Windows). Override with `MSD_TRUST_NETWORK` env var.
 
@@ -270,5 +280,4 @@ Licensed under either of:
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
 
 at your option.
-
 
