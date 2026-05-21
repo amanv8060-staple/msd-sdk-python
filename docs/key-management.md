@@ -408,20 +408,20 @@ export MSD_TRUST_ANCHORS='[
 ### Key Generation
 
 ```python
-# Identity key (endorsed by MSD platform, never expires)
+# Unendorsed key (testing/offline only - not recommended for production)
+test_key = msd.generate_key_pair(unendorsed=True)
+
+# Coming soon: identity key endorsed by MSD platform
 identity_key = msd.generate_key_pair()
 
-# Working key (endorsed by identity key, has expiry)
+# Coming soon: working key endorsed by an identity key, with expiry
 working_key = msd.generate_key_pair(
     endorsed_by=identity_key,      # Identity key endorses this key
     expires_in="30d"               # Duration: "1h", "7d", "30d", "3m"
 )
-
-# Unendorsed key (testing/offline only - not recommended for production)
-test_key = msd.generate_key_pair(unendorsed=True)
 ```
 
-> **Note**: `generate_key_pair()` requires endorsement by default. Use `unendorsed=True` only for local testing.
+> **Note**: `generate_key_pair()` requires endorsement by default. Use `unendorsed=True` for local testing until platform endorsement is available.
 
 > **Coming soon**: Key visibility controls for specifying which parties can discover keys.
 
@@ -434,8 +434,8 @@ msd.save_key(name_or_path, key)
 # Load from file  
 key = msd.load_key(name_or_path)
 
-# Load from environment (JSON format)
-key = msd.key_from_env("MSD_PRIVATE_KEY")
+# Load from environment (compact key, JSON, or base64 JSON)
+key = msd.key_from_env()  # reads MSD_SIGNING_KEY by default
 
 # Get default key directory for current OS
 msd.get_key_directory() -> str
@@ -444,6 +444,8 @@ msd.get_key_directory() -> str
 ```
 
 ### Trust Management
+
+Coming soon:
 
 ```python
 # Check if key is endorsed by trusted root
@@ -460,6 +462,7 @@ msd.get_endorsement_chain(key) -> list
 ```python
 # ci_setup.py - Use pre-provisioned working key from secrets
 import msd_sdk as msd
+import json
 import os
 
 # Load working key from CI secrets (pre-generated, valid for ~30 days)
@@ -473,7 +476,8 @@ for artifact in build_artifacts:
         metadata={'build_id': os.environ['BUILD_ID'], 'commit': os.environ['GIT_SHA']},
         key=pipeline_key
     )
-    msd.save_file(f"{artifact.name}.msd", signed)
+    with open(f"{artifact.name}.msd.json", "w") as f:
+        json.dump(signed, f)
 ```
 
 > **Tip**: Rather than generating keys per-pipeline-run, provision working keys with 30-90 day validity and rotate them periodically (similar to TLS certificate management).
@@ -484,9 +488,10 @@ for artifact in build_artifacts:
 
 ## Troubleshooting
 
+Endorsement and trust-chain diagnostics are coming soon.
+
 | Issue | Solution |
 |-------|----------|
 | "Key not endorsed by trusted root" | Add appropriate trust anchor |
 | "Delegated key expired" | Generate new working key from identity key |
 | "Cannot verify offline" | Ensure MSD root public key is bundled (default) |
-| "Platform unreachable" | Use `register_with_platform=False` for local-only keys |

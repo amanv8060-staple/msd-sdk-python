@@ -16,13 +16,13 @@ This will:
 ### Bump Version and Publish
 
 ```bash
-# Bump patch version (0.1.0 -> 0.1.1)
+# Bump patch version (X.Y.Z -> X.Y.Z+1)
 python publish.py --bump
 
-# Bump minor version (0.1.0 -> 0.2.0)
+# Bump minor version (X.Y.Z -> X.Y+1.0)
 python publish.py --bump minor
 
-# Bump major version (0.1.0 -> 1.0.0)
+# Bump major version (X.Y.Z -> X+1.0.0)
 python publish.py --bump major
 ```
 
@@ -30,12 +30,12 @@ python publish.py --bump major
 
 1. Edit version in `pyproject.toml`:
    ```toml
-   version = "0.2.0"
+   version = "X.Y.Z"
    ```
 
 2. Edit version in `src/msd_sdk/__init__.py`:
    ```python
-   __version__ = "0.2.0"
+   __version__ = "X.Y.Z"
    ```
 
 3. Run publish script:
@@ -45,8 +45,8 @@ python publish.py --bump major
 
 4. Commit changes:
    ```bash
-   git add -A && git commit -m "Release v0.2.0"
-   git tag v0.2.0
+   git add -A && git commit -m "Release vX.Y.Z"
+   git tag vX.Y.Z
    git push && git push --tags
    ```
 

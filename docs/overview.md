@@ -22,9 +22,9 @@ Think of it as "git for data" meets "digital signatures for everything."
 
 ## Core Concepts
 
-### Granules
+### Signed Data
 
-The fundamental unit in MSD is a **Granule**—a piece of data combined with its cryptographic signature. Every granule contains four essential elements:
+The fundamental unit in the Python SDK is **Signed Data** — a piece of data combined with its cryptographic signature. Every signed data envelope contains four essential elements:
 
 | Component | Purpose |
 |-----------|---------|
@@ -47,12 +47,13 @@ The fundamental unit in MSD is a **Granule**—a piece of data combined with its
 
 ```
 msd-sdk-python/
-├── src/
-│   └── msd_sdk/
-│       └── __init__.py      # Main SDK implementation
-├── docs/
-│   ├── overview.md          # This document
-│   └── PUBLISHING.md        # PyPI publishing guide
+├── src/msd_sdk/
+│   ├── __init__.py          # Public API exports and import checks
+│   ├── core.py              # Sign, embed, verify, hash, extract, strip
+│   ├── key_management.py    # Key generation, storage, env loading
+│   └── trust_network.py     # Local trust-network store
+├── docs/                    # User and maintainer documentation
+├── tests/                   # SDK tests
 ├── pyproject.toml           # Package configuration
 ├── publish.py               # PyPI publishing script
 ├── README.md                # User-facing documentation
@@ -65,10 +66,11 @@ msd-sdk-python/
 
 ### Current State
 
-The SDK is at v0.2.0. The current implementation provides:
+The SDK is at v0.2.4. The current implementation provides:
 
-- Version declaration (`__version__ = "0.2.0"`)
-- Zef package verification (checks for the rust-based `zef-core` dependency)
+- Version declaration (`__version__ = "0.2.4"`)
+- Zef package verification (checks for the rust-based `zef` dependency)
+- Signing, embedding, verification, content hashing, key storage, and a local trust-network store
 
 ### API
 
@@ -76,7 +78,7 @@ The SDK is at v0.2.0. The current implementation provides:
 import msd_sdk as msd
 
 # Key management
-my_key = msd.key_from_env("MSD_PRIVATE_KEY")
+my_key = msd.key_from_env()  # reads MSD_SIGNING_KEY by default
 
 # Sign data
 signed = msd.sign(data, metadata, my_key)
@@ -139,11 +141,11 @@ The signature is computed over three concatenated components:
 └─────────────────────┴─────────────────────┴─────────────────────┘
 ```
 
-### Signed Granule Structure
+### Signed Data Structure
 
 ```python
 {
-  '__type': 'MSD.Granule',
+  '__type': 'ET.SignedData',
   'data': 'Hello, Meta Structured Data!',
   'metadata': {'creator': 'Alice', 'description': 'sample data'},
   'signature_time': {'__type': 'Time', 'zef_unix_time': '1769247795.03406592'},
@@ -163,15 +165,13 @@ The signature is computed over three concatenated components:
 
 ## Dependencies
 
-The SDK depends on **zef-core**, a Rust-based library providing:
+The SDK depends on **zef**, a Rust-based library published on PyPI that provides:
 
 - `merkle_hash` / `msd_hash` – Content hashing
 - `blake3_hash_content` – BLAKE3 hashing
 - `sign_with` / `verify_signature` – Ed25519 operations
 - `to_json_like` / `from_json_like` – Type serialization
 - Functional composition with `|` pipe operator
-
-> **Note**: The zef-core package is not publicly available yet. Coming soon.
 
 ---
 
@@ -206,7 +206,7 @@ MSD is available through multiple interfaces:
 
 | Interface | Description |
 |-----------|-------------|
-| **MSD Studio** | Web app at studio.metastructured.org |
+| **MSD Explorer** | Web dashboard at https://network.msd-protocol.org/dashboard |
 | **MSD CLI** | Command-line interface for developers |
 | **MSD Desktop** | Graphical desktop application |
 | **MSD SDKs** | Language-specific libraries (Python, JS, Rust) |
@@ -217,7 +217,7 @@ MSD is available through multiple interfaces:
 
 ## Source Repository
 
-**GitHub**: https://github.com/UlfBissbort/msd-sdk-python
+**GitHub**: https://github.com/msd-protocol/msd-sdk-python
 
 ---
 

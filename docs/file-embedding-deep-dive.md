@@ -155,15 +155,15 @@ The signature is computed over:
 
 ### Layer 3: Embedding Layer
 
-The embedding layer uses Zef's format-specific handlers to store granule data:
+The embedding layer uses Zef's format-specific handlers to store signed-data metadata:
 
 ```mermaid
 flowchart TB
     subgraph Sign Flow
         A[Original File] --> B[Parse to Zef Type]
         B --> C[Strip Existing Metadata]
-        C --> D[Create Signed Granule]
-        D --> E[Serialize Granule minus data]
+        C --> D[Create Signed Data]
+        D --> E[Serialize Signed Data minus data]
         E --> F[Embed Bytes in File]
         F --> G[Return Signed File]
     end
@@ -176,11 +176,11 @@ flowchart TB
 ### Step 1: Parse to Typed Representation
 
 ```python
-# Internal: Python dict → Zef typed object
-match data['type']:
-    case 'png': typed = zef.PngImage(data['content'])
-    case 'jpg': typed = zef.JpgImage(data['content'])
-    case 'pdf': typed = zef.PDF(data['content'])
+# Internal: Python typed dict → Zef typed object
+match data['__type']:
+    case 'PngImage': typed = zef.PngImage(data['data'])
+    case 'JpgImage': typed = zef.JpgImage(data['data'])
+    case 'PDF': typed = zef.PDF(data['data'])
     # ... etc
 ```
 
@@ -201,12 +201,16 @@ Before signing, any existing MSD metadata is removed. This ensures:
 - Idempotent signing (sign twice = same result)
 - Clean content hash (no recursive metadata)
 
-### Step 3: Create Signed Granule
+### Step 3: Create Signed Data
 
 ```python
 timestamp = zef.now()
-granule = zef.create_signed_granule(clean, metadata, timestamp, key)
+granule_internal = zef.create_signed_granule(clean, metadata, timestamp, key)
+signed_data = granule_internal | zef.to_json_like | zef.collect
+signed_data['__type'] = 'ET.SignedData'
 ```
+
+The public Python SDK calls this `ET.SignedData`; some lower-level Zef internals still use the older granule naming.
 
 The signature is computed as:
 
@@ -222,8 +226,8 @@ Where `||` means concatenation.
 ### Step 4: Serialize and Embed
 
 ```python
-# Serialize granule WITHOUT the data field (data is the file itself)
-to_embed = granule | zef.remove('data') | zef.to_bytes
+# Serialize signed data WITHOUT the data field (data is the file itself)
+to_embed = signed_data | zef.remove('data') | zef.to_bytes
 
 # Embed into the file
 signed_file = zef.embed_data(typed, to_embed)
@@ -248,7 +252,7 @@ flowchart TB
     subgraph Verify Flow
         A[Signed File] --> B[Parse to Zef Type]
         B --> C[Extract Embedded Bytes]
-        C --> D[Parse to Granule minus data]
+        C --> D[Parse to Signed Data minus data]
         B --> E[Strip to Get Clean Content]
         D --> F[Insert Clean Content as Data]
         E --> F
@@ -264,7 +268,7 @@ flowchart TB
 ```python
 typed = zef.PngImage(signed_content)
 embedded_bytes = typed | zef.extract_embedded_data | zef.collect
-granule_without_data = zef.bytes_to_zef_value(embedded_bytes)
+signed_data_without_data = zef.bytes_to_zef_value(embedded_bytes)
 ```
 
 ### Step 2: Reconstruct Original Content
@@ -278,13 +282,13 @@ This gives us the file content *without* the embedded signature bytes — the sa
 ### Step 3: Reassemble and Verify
 
 ```python
-complete_granule = zef.insert(granule_without_data, 'data', clean_content)
-result = complete_granule | zef.verify_granite_signature | zef.collect
+complete_signed_data = zef.insert(signed_data_without_data, 'data', clean_content)
+result = complete_signed_data | zef.verify_granite_signature | zef.collect
 ```
 
 The verification succeeds if:
 1. The reconstructed data hash matches what was signed
-2. The signature is valid for the public key in the granule
+2. The signature is valid for the public key in the signed data
 
 ---
 
@@ -384,10 +388,10 @@ MSD supports endorsement chains (see key management docs), but the basic `verify
 
 ### Why Remove Data Before Embedding?
 
-When we embed the granule into a file, we don't include the `data` field:
+When we embed signed data into a file, we don't include the `data` field:
 
 ```python
-to_embed = granule | zef.remove('data') | zef.to_bytes
+to_embed = signed_data | zef.remove('data') | zef.to_bytes
 ```
 
 This is because:
@@ -395,8 +399,8 @@ This is because:
 2. We'd have infinite recursion (file contains itself)
 3. Keeps the embedded size minimal
 
-During verification, we reconstruct the complete granule by:
-1. Extracting the partial granule (without data)
+During verification, we reconstruct the complete signed data by:
+1. Extracting the partial signed data (without data)
 2. Stripping the file to get clean content
 3. Inserting the clean content as `data`
 
@@ -432,7 +436,7 @@ This allows the same `verify()` function to work with:
 MSD file embedding is a three-layer system:
 
 1. **User API**: Simple Python dict interface
-2. **Granule Layer**: Ed25519 signatures with BLAKE3 Merkle hashing
+2. **Signed Data Layer**: Ed25519 signatures with BLAKE3 Merkle hashing
 3. **Embedding Layer**: Format-specific metadata storage
 
 The key design decisions are:

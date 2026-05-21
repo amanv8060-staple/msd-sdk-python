@@ -288,4 +288,4 @@ clean = msd.strip_metadata_and_signature(embedded)
 | Extract signature info | `msd.extract_signature(signed_data)` |
 | Content hash (no signing) | `msd.content_hash(data)` |
 | Strip signature from file | `msd.strip_metadata_and_signature(signed_file)` |
-| Load key from env var | `msd.key_from_env("MSD_PRIVATE_KEY")` |
+| Load key from env var | `msd.key_from_env()` |

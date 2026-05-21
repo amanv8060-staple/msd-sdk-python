@@ -62,7 +62,7 @@ def _verify_zef_installation():
     Verify that the correct zef (rust-based) is installed.
     
     This is called at import time to fail fast if the required
-    zef-core package is not available.
+    zef package is not available.
     """
     try:
         import zef
